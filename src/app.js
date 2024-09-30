@@ -99,6 +99,7 @@ app.use("/api/notifications", notificationRouter);
 app.use("/api/payment", paymentRouter);
 app.use("/api/favorite", favoriteRouter);
 app.use("/api/stripe-return", async(req, res) => {
+
   const {user_id, st} = req.query
   const paymentId =st
   const user = await User.findById(user_id);
@@ -107,7 +108,8 @@ app.use("/api/stripe-return", async(req, res) => {
   }
 
   try {
-    const result = await User.findByIdAndUpdate(user?._id, {stripeConnectAccountId: paymentId}, {new : true})
+    const result = await User.findByIdAndUpdate(user?._id, {stripeConnectAccountId: paymentId}, {new : true});
+    req.redirect("https://pullupapp.net/")
     sendResponse(res, { statusCode: httpStatus.OK, data: result, message: 'your account successfully done', success: true });
   } catch (error) {
     throw new AppError(httpStatus.BAD_REQUEST, "user stripe account creation failed")
