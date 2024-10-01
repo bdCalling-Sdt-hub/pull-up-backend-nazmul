@@ -98,25 +98,77 @@ app.use("/api/support", supportRouter);
 app.use("/api/notifications", notificationRouter);
 app.use("/api/payment", paymentRouter);
 app.use("/api/favorite", favoriteRouter);
-app.use("/api/stripe-return", async(req, res) => {
 
-  const {user_id, st} = req.query
-  const paymentId =st
-  const user = await User.findById(user_id);
-  if (!user) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'User not found!');
+
+
+
+
+app.use("/api/stripe-return", async (req, res) => {
+  const { user_id, st } = req.query;
+  console.log("🚀 ~ app.use ~ query:", req.query);
+
+  const paymentId = st;
+
+  // Validate the required query parameters
+  if (!user_id || !paymentId) {
+    return res.status(httpStatus.BAD_REQUEST).json({
+      success: false,
+      message: "Missing user_id or paymentId (st)."
+    });
   }
 
   try {
-    const result = await User.findByIdAndUpdate(user?._id, {stripeConnectAccountId: paymentId}, {new : true});
-    req.redirect("https://pullupapp.net/")
-    sendResponse(res, { statusCode: httpStatus.OK, data: result, message: 'your account successfully done', success: true });
+    // Find the user by ID
+    const user = await User.findById(user_id);
+    if (!user) {
+     throw new AppError(httpStatus.BAD_REQUEST, "user not found")
+    }
+
+    // Update the user's Stripe account ID
+    const updatedUser = await User.findByIdAndUpdate(
+      user._id,
+      { stripeConnectAccountId: paymentId },
+      { new: true }
+    );
+
+    if (!updatedUser) {
+      throw new AppError(httpStatus.BAD_REQUEST, "User update failed.") 
+    }
+
+    // Redirect the user after a successful update
+    res.redirect("https://pullupapp.net/");
+    
   } catch (error) {
-    throw new AppError(httpStatus.BAD_REQUEST, "user stripe account creation failed")
-  } 
+    console.error(error);
+    throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, "An error occurred while updating user's stripe account ID.");
+  }
 });
+
+
+// app.use("/api/stripe-return", async(req, res) => {
+
+//   const {user_id, st} = req.query
+//   console.log("🚀 ~ app.use ~ query:", req.query)
+//   const paymentId =st
+//   const user = await User.findById(user_id);
+//   if (!user) {
+//     throw new AppError(httpStatus.BAD_REQUEST, 'User not found!');
+//   }
+
+//   try {
+//     const result = await User.findByIdAndUpdate(user?._id, {stripeConnectAccountId: paymentId}, {new : true});
+   
+//     res.redirect("https://pullupapp.net/")
+  
+//     sendResponse(res, { statusCode: httpStatus.OK, data: result, message: 'your account successfully done', success: true });
+//   } catch (error) {
+//     console.log("----------------------",error);
+//     throw new AppError(httpStatus.BAD_REQUEST, "user stripe account creation failed")
+//   } 
+// });
 app.use("/api/stripe-refresh/:id", async(req, res) => {
   const user = await User.findById(req?.query?.user_id);
+  console.log("🚀 ~ app.use ~ user:", user)
   const paymentId = req.params.id
   if (!user) {
     throw new AppError(httpStatus.BAD_REQUEST, 'User not found!');
